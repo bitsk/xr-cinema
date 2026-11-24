@@ -1,0 +1,12 @@
+[
+  {"id":"flat2d","title":"大雄兔 · 林间初醒","file":"demos/flat2d.mp4","projection":"flat","stereo":"mono"},
+  {"id":"stereo-sbs","title":"大雄兔 · 花丛近景","file":"demos/stereo-sbs.mp4","projection":"flat","stereo":"sbs"},
+  {"id":"stereo-tb","title":"大雄兔 · 橡树下的相遇","file":"demos/stereo-tb.mp4","projection":"flat","stereo":"top_bottom"},
+  {"id":"hemisphere180","title":"诺拉角海岸","file":"demos/hemisphere180.mp4","projection":"equirect180","stereo":"mono"},
+  {"id":"vr180-sbs","title":"浮灯渡","file":"demos/vr180-sbs.mp4","projection":"equirect180","stereo":"sbs"},
+  {"id":"vr180-tb","title":"浮灯渡","file":"demos/vr180-tb.mp4","projection":"equirect180","stereo":"top_bottom"},
+  {"id":"panorama360","title":"莫斯科地铁车厢","file":"demos/panorama360.mp4","projection":"equirect360","stereo":"mono"},
+  {"id":"vr360-sbs","title":"极夜冰湾","file":"demos/vr360-sbs.mp4","projection":"equirect360","stereo":"sbs"},
+  {"id":"vr360-tb","title":"极夜冰湾","file":"demos/vr360-tb.mp4","projection":"equirect360","stereo":"top_bottom"},
+  {"id":"rings","title":"环行星","file":"环行星.webm","projection":"flat","stereo":"mono"}
+]

@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=XR Cinema
+Name[zh_CN]=空间影院
+GenericName=Spatial video player
+GenericName[zh_CN]=空间视频播放器
+Comment=Watch planar, stereo and panoramic video in a headset
+Comment[zh_CN]=在头显中观看平面、立体和全景视频
+Exec=xr-cinema-desktop %f
+TryExec=xr-cinema-desktop
+Icon=video-x-generic
+Terminal=false
+Categories=AudioVideo;Video;Player;
+Keywords=OpenXR;VR;Cinema;360;180;3D;
+MimeType=video/mp4;video/webm;video/x-matroska;video/quicktime;video/x-msvideo;video/mpeg;video/ogg;video/mp2t;
