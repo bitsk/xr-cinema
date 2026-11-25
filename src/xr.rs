@@ -71,10 +71,8 @@ impl Graphics {
                 0,
             );
             let required = requirements.min_api_version_supported;
-            let version = xr::Version::new(1, 1, 0)
-                .min(loader_version)
-                .min(requirements.max_api_version_supported)
-                .max(xr::Version::new(required.major(), required.minor(), 0));
+            let version = xr::Version::new(required.major(), required.minor(), 0)
+                .max(xr::Version::new(1, 0, 0));
             ensure!(
                 version <= loader_version,
                 "OpenXR requires Vulkan {version}, loader offers {loader_version}"
@@ -275,22 +273,32 @@ pub fn run(app: &mut App) -> Result<()> {
     .into_iter()
     .find(|format| formats.contains(&(format.as_raw() as _)))
     .ok_or_else(|| anyhow!("runtime offers no supported 8-bit RGBA swapchain ({formats:?})"))?;
-    let mut chain = session.create_swapchain(&xr::SwapchainCreateInfo {
-        create_flags: xr::SwapchainCreateFlags::EMPTY,
-        usage_flags: xr::SwapchainUsageFlags::COLOR_ATTACHMENT,
-        format: format.as_raw() as _,
-        sample_count: 1,
-        width: extent.width,
-        height: extent.height,
-        face_count: 1,
-        array_size: 2,
-        mip_count: 1,
-    })?;
-    let images: Vec<_> = chain
-        .enumerate_images()?
-        .into_iter()
-        .map(vk::Image::from_raw)
-        .collect();
+    // Separate single-layer swapchains avoid cross-process array-layer layout
+    // assumptions in native display runtimes while preserving each eye's pose.
+    let mut chains = Vec::new();
+    let mut images = Vec::new();
+    let mut offsets = Vec::new();
+    for _ in 0..2 {
+        let chain = session.create_swapchain(&xr::SwapchainCreateInfo {
+            create_flags: xr::SwapchainCreateFlags::EMPTY,
+            usage_flags: xr::SwapchainUsageFlags::COLOR_ATTACHMENT,
+            format: format.as_raw() as _,
+            sample_count: 1,
+            width: extent.width,
+            height: extent.height,
+            face_count: 1,
+            array_size: 1,
+            mip_count: 1,
+        })?;
+        offsets.push(images.len());
+        images.extend(
+            chain
+                .enumerate_images()?
+                .into_iter()
+                .map(|image| (vk::Image::from_raw(image), 1)),
+        );
+        chains.push(chain);
+    }
     let mut renderer = Renderer::new(
         &gpu.instance.api,
         &gpu.device,
@@ -390,26 +398,36 @@ pub fn run(app: &mut App) -> Result<()> {
         app.hover(controls.pointer);
         let settings = app.settings(controls.hands);
         let (video, panel) = app.textures();
-        let image = chain.acquire_image()?;
-        chain.wait_image(xr::Duration::INFINITE)?;
+        let left = chains[0].acquire_image()?;
+        chains[0].wait_image(xr::Duration::INFINITE)?;
+        let right = match chains[1].acquire_image() {
+            Ok(image) => image,
+            Err(error) => {
+                let _ = chains[0].release_image();
+                return Err(error.into());
+            }
+        };
+        chains[1].wait_image(xr::Duration::INFINITE)?;
         let painted = renderer.render(
-            image as _,
+            [offsets[0] + left as usize, offsets[1] + right as usize],
             [eye(&views[0]), eye(&views[1])],
             settings,
             video,
             panel,
         );
-        let released = chain.release_image();
+        let released_left = chains[0].release_image();
+        let released_right = chains[1].release_image();
         painted?;
-        released?;
+        released_left?;
+        released_right?;
         let layers = [0, 1].map(|i| {
             xr::CompositionLayerProjectionView::new()
                 .pose(views[i].pose)
                 .fov(views[i].fov)
                 .sub_image(
                     xr::SwapchainSubImage::new()
-                        .swapchain(&chain)
-                        .image_array_index(i as u32)
+                        .swapchain(&chains[i])
+                        .image_array_index(0)
                         .image_rect(rect),
                 )
         });

@@ -230,7 +230,7 @@ fn stereo_pixels() -> Result<()> {
         target.queue,
         FORMAT,
         EXTENT,
-        &[target.image],
+        &[(target.image, 2)],
     )?;
     let front = Eye {
         orientation: [0., 0., 0., 1.],
@@ -266,7 +266,7 @@ fn stereo_pixels() -> Result<()> {
                      row: u32,
                      expected: [[u8; 4]; 2]|
      -> Result<()> {
-        renderer.render(0, [view; 2], settings, frame, panel)?;
+        renderer.render([0, 0], [view; 2], settings, frame, panel)?;
         let colors = unsafe { target.sample_eyes(row)? };
         for (got, want) in colors.iter().zip(expected) {
             assert!(
@@ -444,7 +444,13 @@ fn stereo_pixels() -> Result<()> {
             [color; 2],
         )?;
     }
-    renderer.render(0, [rear; 2], Settings { projection: 1, ..s }, None, None)?;
+    renderer.render(
+        [0, 0],
+        [rear; 2],
+        Settings { projection: 1, ..s },
+        None,
+        None,
+    )?;
     let cinema = unsafe { target.sample_eyes(center)? };
     assert!(cinema
         .iter()
@@ -505,7 +511,7 @@ fn controller_pixels() -> Result<()> {
         target.queue,
         FORMAT,
         extent,
-        &[target.image],
+        &[(target.image, 2)],
     )?;
     let eyes = [-0.032, 0.032].map(|x| Eye {
         position: [x, 0., 0.],
@@ -524,7 +530,7 @@ fn controller_pixels() -> Result<()> {
     };
     let video_black = [0, 0, 0, 255];
     renderer.render(
-        0,
+        [0, 0],
         eyes,
         settings,
         Some(Pixels {
@@ -544,7 +550,7 @@ fn controller_pixels() -> Result<()> {
         ..HandVisual::default()
     };
     settings.hands[0] = left;
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     let model = unsafe { target.pixels()? };
     let centroids = [0, 1].map(|eye| {
         let mut count = 0;
@@ -578,7 +584,7 @@ fn controller_pixels() -> Result<()> {
             ..HandVisual::default()
         },
     ];
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     let laser = unsafe { target.pixels()? };
     for (index, eye) in eyes.iter().enumerate() {
         let u = 0.5 - eye.position[0] / (4. * eye.fov[1].tan());
@@ -601,19 +607,19 @@ fn controller_pixels() -> Result<()> {
     let hand = pointing_hand([0.33, -0.11, -0.65], [0., -1.5, -6.12], 0.13, true);
     let ray = hand.ray.unwrap();
     settings.hands = [HandVisual::default(), HandVisual { ray: None, ..hand }];
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     let unlit = unsafe { target.pixels()? };
     settings.hands[1] = hand;
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     let hover = unsafe { target.pixels()? };
     // Removing the grip reveals the part of the beam that the real housing
     // can legitimately hide when seen from behind the optical window.
     settings.hands[1].grip = None;
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     let light_without_housing = unsafe { target.pixels()? };
     settings.hands[1] = hand;
     settings.hands[1].ray.as_mut().unwrap().state = RayState::Pressed;
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     let pressed = unsafe { target.pixels()? };
     let delta: [f32; 3] = std::array::from_fn(|i| ray.end[i] - ray.origin[i]);
     let length = delta.iter().map(|x| x * x).sum::<f32>().sqrt();
@@ -663,7 +669,7 @@ fn controller_pixels() -> Result<()> {
     }
     // Removing tracked poses must clear both layers, including the cursor.
     settings.hands = Default::default();
-    renderer.render(0, eyes, settings, None, None)?;
+    renderer.render([0, 0], eyes, settings, None, None)?;
     assert!(unsafe { target.pixels()? } == baseline);
 
     if let Some(preview) = std::env::var_os("XR_CINEMA_HAND_PREVIEW") {
@@ -744,14 +750,14 @@ fn controller_pixels() -> Result<()> {
             target.queue,
             FORMAT,
             extent,
-            &[target.image],
+            &[(target.image, 2)],
         )?;
         let eyes = eyes.map(|e| Eye {
             fov: [-0.73, 0.73, 0.51, -0.51],
             ..e
         });
         renderer.render(
-            0,
+            [0, 0],
             eyes,
             settings,
             Some(Pixels {

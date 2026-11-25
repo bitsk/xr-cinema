@@ -327,7 +327,7 @@ impl Renderer {
         queue: vk::Queue,
         format: vk::Format,
         extent: vk::Extent2D,
-        images: &[vk::Image],
+        images: &[(vk::Image, u32)],
     ) -> Result<Self> {
         ensure!(!images.is_empty(), "OpenXR returned an empty swapchain");
         let mut r = Self {
@@ -439,7 +439,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn create_targets(&mut self, format: vk::Format, images: &[vk::Image]) -> Result<()> {
+    fn create_targets(&mut self, format: vk::Format, images: &[(vk::Image, u32)]) -> Result<()> {
         let color = [vk::AttachmentReference::default()
             .attachment(0)
             .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)];
@@ -485,28 +485,25 @@ impl Renderer {
             )
             .dependency_flags(vk::DependencyFlags::BY_REGION);
         unsafe {
-            let release = vk::SubpassDependency::default()
-                .src_subpass(0)
-                .dst_subpass(vk::SUBPASS_EXTERNAL)
-                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-                .dst_stage_mask(vk::PipelineStageFlags::ALL_COMMANDS)
-                .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
-                .dst_access_mask(vk::AccessFlags::MEMORY_READ);
             self.pass = self.device.create_render_pass(
                 &vk::RenderPassCreateInfo::default()
                     .attachments(&[attachment, depth])
-                    .dependencies(&[dependency, release])
+                    .dependencies(&[dependency])
                     .subpasses(&[subpass]),
                 None,
             )?;
-            for &image in images {
+            for &(image, layers) in images {
+                ensure!(
+                    layers == 1 || layers == 2,
+                    "expected one or two image layers"
+                );
                 for eye in 0..2 {
                     let view = self.device.create_image_view(
                         &vk::ImageViewCreateInfo::default()
                             .image(image)
                             .view_type(vk::ImageViewType::TYPE_2D)
                             .format(format)
-                            .subresource_range(color_range(eye)),
+                            .subresource_range(color_range(eye.min(layers - 1))),
                         None,
                     )?;
                     self.views.push(view);
@@ -694,14 +691,16 @@ impl Renderer {
 
     pub fn render(
         &mut self,
-        image: usize,
+        image: [usize; 2],
         eyes: [Eye; 2],
         settings: Settings,
         video: Option<Pixels<'_>>,
         panel: Option<Pixels<'_>>,
     ) -> Result<()> {
         ensure!(
-            image < self.framebuffers.len() / 2,
+            image
+                .iter()
+                .all(|&index| index < self.framebuffers.len() / 2),
             "unknown swapchain image index"
         );
         unsafe {
@@ -754,7 +753,7 @@ impl Renderer {
                 ];
                 let pass = vk::RenderPassBeginInfo::default()
                     .render_pass(self.pass)
-                    .framebuffer(self.framebuffers[image * 2 + index])
+                    .framebuffer(self.framebuffers[image[index] * 2 + index])
                     .clear_values(&clears)
                     .render_area(vk::Rect2D::default().extent(self.extent));
                 self.device
@@ -797,9 +796,6 @@ impl Renderer {
                 &[vk::SubmitInfo::default().command_buffers(&[self.cmd])],
                 self.fence,
             )?;
-            // Complete the image before handing it to an external compositor.
-            // The staging fence also makes both array layers available together.
-            self.device.wait_for_fences(&[self.fence], true, u64::MAX)?;
         }
         Ok(())
     }
