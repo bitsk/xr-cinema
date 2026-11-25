@@ -11,7 +11,7 @@ openKylin XR 的原生空间视频播放器。Rust 驱动 OpenXR 帧循环、手
 将对应架构的安装包复制到设备，在包所在目录运行以下命令。已验证的系统包括 openKylin 3.0 ARM64 和 openKylin 2.0 SP2 RISC-V 64。目标图形会话需要可用的 Vulkan 驱动和支持 `XR_KHR_vulkan_enable2` 的 OpenXR 运行时。
 
 ```sh
-sudo apt install "./xr-cinema_0.3.0_$(dpkg --print-architecture).deb"
+sudo apt install "./xr-cinema_0.3.5_$(dpkg --print-architecture).deb"
 ```
 
 连接头显，在 HyperSpace 底部 Dock 最左侧打开 **应用库**，翻页找到 **空间影院**。进入影院后，点播放栏的文件夹，选择 **演示片库** 即可试播。如果在 HyperSpace 运行期间安装了影院，重新打开 HyperSpace 会刷新应用列表。
@@ -124,6 +124,8 @@ python3 tests/demos.py target/release/xr-cinema assets/demos/catalog.json
 在提供 `XR_SCENE_APPLICATION_SOCKET` 的原生 HyperSpace 会话中，桌面启动器通过 `xr-shell-session` 交接前台。播放器退出后由同一会话恢复空间桌面，安装与启动均不会重启跟踪或 XR 运行时。跨组件构建使用 `xr-build-components build --profile cinema --only xr-cinema`。
 
 ## 设备验证
+
+SM8250 / Venus 的原生会话已验证 `v4l2h264dec` 硬解、播放定位和正常片尾，取得有效的 MIX 双眼影院截图。影片通过左右眼独立的单层交换链提交。内核需包含映射 EOS 缓冲及定位时恢复 CAPTURE 队列的修复。0.3.5 的暂停、定位后连续换片路径已通过离线回归，实机复测仍待完成。
 
 0.3.0 已在 ARM64 的 Mali-G720 MC10 和 RISC-V 的 Milk-V TITAN（Radeon RX 9060 XT）上通过 Vulkan 双眼像素回读测试，覆盖手柄模型视差、射线近端亮度、控件落点、按压反馈和跟踪中断。该版本的手柄交互仍待实体头显佩戴复测。
 
