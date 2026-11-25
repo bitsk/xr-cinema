@@ -47,8 +47,12 @@ int cinema_gst_init(char *message, size_t size) {
 void cinema_media_free(CinemaMedia *m) {
     if (!m)
         return;
-    if (m->playbin)
+    if (m->playbin) {
+        /* A paused appsink retains its preroll sample. Flush it before the
+         * V4L2 decoder deactivates its pool, or close waits on that buffer. */
+        gst_element_send_event(m->playbin, gst_event_new_flush_start());
         gst_element_set_state(m->playbin, GST_STATE_NULL);
+    }
     gst_clear_object(&m->bus);
     gst_clear_object(&m->playbin);
     gst_clear_object(&m->sink);

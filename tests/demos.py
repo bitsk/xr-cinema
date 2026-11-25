@@ -53,6 +53,11 @@ def main(binary, catalog):
                 assert Path(state["path"]) == catalog.parent.parent / item["file"]
                 print(f"{item['id']:14s} {state['video_size']} {state['duration']:.2f}s "
                       f"{state['projection']}/{state['stereo']} — {item['title']}", flush=True)
+                command("pause")
+                before = command("status")["decoded_frames"]
+                command("seek", seconds=5)
+                wait(lambda s: not s["playing"] and s["decoded_frames"] > before
+                     and abs(s["position"] - 5) < 0.2)
             assert command("next")["demo_id"] == items[0]["id"]
             assert command("previous")["demo_id"] == items[-1]["id"]
             command("quit")
