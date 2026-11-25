@@ -71,8 +71,10 @@ impl Graphics {
                 0,
             );
             let required = requirements.min_api_version_supported;
-            let version = xr::Version::new(required.major(), required.minor(), 0)
-                .max(xr::Version::new(1, 0, 0));
+            let version = xr::Version::new(1, 1, 0)
+                .min(loader_version)
+                .min(requirements.max_api_version_supported)
+                .max(xr::Version::new(required.major(), required.minor(), 0));
             ensure!(
                 version <= loader_version,
                 "OpenXR requires Vulkan {version}, loader offers {loader_version}"

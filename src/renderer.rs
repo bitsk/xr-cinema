@@ -485,10 +485,17 @@ impl Renderer {
             )
             .dependency_flags(vk::DependencyFlags::BY_REGION);
         unsafe {
+            let release = vk::SubpassDependency::default()
+                .src_subpass(0)
+                .dst_subpass(vk::SUBPASS_EXTERNAL)
+                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .dst_stage_mask(vk::PipelineStageFlags::ALL_COMMANDS)
+                .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                .dst_access_mask(vk::AccessFlags::MEMORY_READ);
             self.pass = self.device.create_render_pass(
                 &vk::RenderPassCreateInfo::default()
                     .attachments(&[attachment, depth])
-                    .dependencies(&[dependency])
+                    .dependencies(&[dependency, release])
                     .subpasses(&[subpass]),
                 None,
             )?;
@@ -790,6 +797,9 @@ impl Renderer {
                 &[vk::SubmitInfo::default().command_buffers(&[self.cmd])],
                 self.fence,
             )?;
+            // Complete the image before handing it to an external compositor.
+            // The staging fence also makes both array layers available together.
+            self.device.wait_for_fences(&[self.fence], true, u64::MAX)?;
         }
         Ok(())
     }
