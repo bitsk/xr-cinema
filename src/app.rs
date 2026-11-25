@@ -31,6 +31,8 @@ const CONTROL_IDLE: Duration = Duration::from_secs(4);
 const FADE_OUT: Duration = Duration::from_millis(240);
 
 pub struct App {
+    // Mapped samples must be released before the decoder pipeline is dropped.
+    video: Option<VideoFrame>,
     media: Media,
     server: Server,
     status: Status,
@@ -39,7 +41,6 @@ pub struct App {
     local_library: Option<Arc<Library>>,
     tab: Tab,
     notice: Option<String>,
-    video: Option<VideoFrame>,
     artwork: Option<Arc<Artwork>>,
     artwork_at: Option<f64>,
     new_video: bool,
@@ -137,6 +138,7 @@ impl App {
         let path = path
             .canonicalize()
             .with_context(|| format!("打开 {}", path.display()))?;
+        self.video = None;
         self.media.open(&path).map_err(anyhow::Error::msg)?;
         let demo = crate::demos::for_path(&path);
         self.status.demo_id = demo.map(|d| d.id.clone());

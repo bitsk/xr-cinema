@@ -176,6 +176,8 @@ impl Media {
             return Err("Please select a local video file".into());
         }
         let filename = CString::new(path.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
+        // Close the old hardware session before allocating the next one.
+        self.pipeline = None;
         let mut error = [0; 1024];
         let raw = unsafe {
             cinema_media_open(
