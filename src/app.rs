@@ -154,6 +154,7 @@ impl App {
         self.status.error = None;
         self.status.video_size = None;
         self.status.decoded_frames = 0;
+        self.status.decoder = None;
         self.video = None;
         self.artwork = None;
         self.artwork_at = None;
@@ -435,6 +436,7 @@ impl App {
         self.status.ended = update.ended;
         self.status.position = update.position;
         self.status.duration = update.duration;
+        self.status.decoder = update.decoder;
         if let Some(error) = update.error {
             self.status.error = Some(error);
         }

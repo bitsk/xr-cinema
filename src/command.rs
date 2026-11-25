@@ -87,6 +87,7 @@ pub struct Status {
     pub scene: Scene,
     pub panel_visible: bool,
     pub decoded_frames: u64,
+    pub decoder: Option<crate::media::DecoderInfo>,
     pub submitted_frames: u64,
     pub controllers: [crate::hands::ControllerStatus; 2],
     pub video_size: Option<[u32; 2]>,

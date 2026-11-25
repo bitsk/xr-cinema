@@ -19,6 +19,9 @@ struct NativeUpdate {
     playing: i32,
     ended: i32,
     error: *const c_char,
+    decoder: *const c_char,
+    decoder_device: *const c_char,
+    hardware_decoder: i32,
 }
 
 unsafe extern "C" {
@@ -125,6 +128,14 @@ pub struct MediaUpdate {
     pub playing: bool,
     pub ended: bool,
     pub error: Option<String>,
+    pub decoder: Option<DecoderInfo>,
+}
+
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct DecoderInfo {
+    pub factory: String,
+    pub hardware: bool,
+    pub device: Option<String>,
 }
 
 struct Pipeline(NonNull<c_void>);
@@ -227,6 +238,19 @@ impl Media {
             ended: native.ended != 0,
             ..MediaUpdate::default()
         };
+        if !native.decoder.is_null() {
+            update.decoder = Some(DecoderInfo {
+                factory: unsafe { CStr::from_ptr(native.decoder) }
+                    .to_string_lossy()
+                    .into_owned(),
+                hardware: native.hardware_decoder != 0,
+                device: (!native.decoder_device.is_null()).then(|| unsafe {
+                    CStr::from_ptr(native.decoder_device)
+                        .to_string_lossy()
+                        .into_owned()
+                }),
+            });
+        }
         if !native.error.is_null() {
             update.error = Some(
                 unsafe { CStr::from_ptr(native.error) }

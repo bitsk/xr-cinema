@@ -12,6 +12,8 @@ typedef struct {
     gboolean playing, ended, failed, buffering;
     gint64 position, duration, next_query;
     gchar error[1024];
+    gchar decoder[128], decoder_device[256];
+    gboolean hardware_decoder;
 } CinemaMedia;
 
 typedef struct {
@@ -28,6 +30,9 @@ typedef struct {
     double position, duration;
     int32_t playing, ended;
     const char *error;
+    const char *decoder;
+    const char *decoder_device;
+    int32_t hardware_decoder;
 } CinemaUpdate;
 
 int cinema_gst_init(char *message, size_t size) {
@@ -154,8 +159,13 @@ static void handle_bus(CinemaMedia *m, CinemaUpdate *out) {
         switch (GST_MESSAGE_TYPE(message)) {
         case GST_MESSAGE_ERROR: {
             GError *error = NULL;
-            gst_message_parse_error(message, &error, NULL);
+            gchar *debug = NULL;
+            gst_message_parse_error(message, &error, &debug);
+            g_printerr("XR_CINEMA_MEDIA_ERROR source=%s message=%s debug=%s\n",
+                       GST_OBJECT_NAME(GST_MESSAGE_SRC(message)),
+                       error ? error->message : "unknown", debug ? debug : "none");
             fail_media(m, out, error ? error->message : "GStreamer playback error");
+            g_free(debug);
             g_clear_error(&error);
             break;
         }
@@ -230,11 +240,59 @@ static void pull_frame(CinemaMedia *m, CinemaUpdate *out) {
         out->display_aspect *= (double)info.par_n / info.par_d;
 }
 
+static void describe_decoder(CinemaMedia *m) {
+    GstIterator *iterator = gst_bin_iterate_recurse(GST_BIN(m->playbin));
+    GValue item = G_VALUE_INIT;
+    gboolean done = FALSE;
+    while (!done) {
+        switch (gst_iterator_next(iterator, &item)) {
+        case GST_ITERATOR_OK: {
+            GstElement *element = g_value_get_object(&item);
+            GstElementFactory *factory = gst_element_get_factory(element);
+            const gchar *klass = factory ? gst_element_factory_get_metadata(
+                factory, GST_ELEMENT_METADATA_KLASS) : NULL;
+            if (klass && strstr(klass, "Decoder") && strstr(klass, "Video")) {
+                g_strlcpy(m->decoder, gst_plugin_feature_get_name(GST_PLUGIN_FEATURE(factory)),
+                          sizeof(m->decoder));
+                m->hardware_decoder = strstr(klass, "Hardware") != NULL;
+                GParamSpec *device = g_object_class_find_property(G_OBJECT_GET_CLASS(element), "device");
+                if (device && (device->flags & G_PARAM_READABLE) &&
+                    G_PARAM_SPEC_VALUE_TYPE(device) == G_TYPE_STRING) {
+                    gchar *path = NULL;
+                    g_object_get(element, "device", &path, NULL);
+                    g_strlcpy(m->decoder_device, path ? path : "", sizeof(m->decoder_device));
+                    g_free(path);
+                }
+                g_printerr("XR_CINEMA_DECODER factory=%s hardware=%d device=%s\n",
+                           m->decoder, m->hardware_decoder, m->decoder_device);
+                done = TRUE;
+            }
+            g_value_reset(&item);
+            break;
+        }
+        case GST_ITERATOR_RESYNC:
+            gst_iterator_resync(iterator);
+            break;
+        default:
+            done = TRUE;
+            break;
+        }
+    }
+    if (G_VALUE_TYPE(&item))
+        g_value_unset(&item);
+    gst_iterator_free(iterator);
+}
+
 void cinema_media_poll(CinemaMedia *m, CinemaUpdate *out) {
     memset(out, 0, sizeof(*out));
     handle_bus(m, out);
     if (!m->failed)
         pull_frame(m, out);
+    if (out->sample && !m->decoder[0])
+        describe_decoder(m);
+    out->decoder = m->decoder[0] ? m->decoder : NULL;
+    out->decoder_device = m->decoder_device[0] ? m->decoder_device : NULL;
+    out->hardware_decoder = m->hardware_decoder;
     gint64 now = g_get_monotonic_time();
     if (!m->failed && now >= m->next_query) {
         gint64 ns;

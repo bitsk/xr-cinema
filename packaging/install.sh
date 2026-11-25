@@ -38,3 +38,4 @@ install -Dm644 "$root/packaging/runtime_control.py" "$dest/lib/xr-cinema/runtime
 ln -sfn ../lib/xr-cinema/launch.py "$dest/bin/xr-cinema-desktop"
 install -Dm644 "$root/packaging/org.openkylin.XRCinema.desktop" \
     "$dest/share/applications/org.openkylin.XRCinema.desktop"
+install -Dm644 "$root/packaging/xr-cinema.json" "$dest/share/xr/applications/xr-cinema.json"

@@ -2,6 +2,7 @@
 """Bring the cinema into view when launched from the spatial desktop."""
 
 import os
+import json
 from pathlib import Path
 import signal
 import subprocess
@@ -52,6 +53,30 @@ def launch(arguments):
         controller = WiVRnControl(library, NAME)
     options = arguments[:arguments.index("--")] if "--" in arguments else arguments
     runs_session = options[:1] != ["ctl"] and not {"--headless", "--list-demos", "-h", "--help"}.intersection(options)
+    if runs_session and environment.get("XR_SCENE_APPLICATION_SOCKET"):
+        # The native desktop owns foreground handoff and restores its existing
+        # scene when the player exits. Its application descriptor selects the ICD.
+        status_command = [command[0], "ctl", '{"op":"status"}']
+        def ready():
+            try:
+                status = subprocess.run(status_command, env=environment, capture_output=True,
+                                        text=True, timeout=3)
+                return status.returncode == 0 and json.loads(status.stdout).get("state", {}).get("ready", False)
+            except CONTROL_ERRORS:
+                return False
+
+        if ready():
+            os.execvpe(command[0], command, environment)
+        started = subprocess.run(["xr-shell-session", "--launch-application", "xr-cinema"],
+                                 env=environment)
+        if started.returncode or not arguments:
+            return started.returncode
+        deadline = time.monotonic() + 45
+        while time.monotonic() < deadline:
+            if ready():
+                os.execvpe(command[0], command, environment)
+            time.sleep(0.15)
+        raise RuntimeError("XR Cinema did not become ready after native foreground handoff")
     if controller and runs_session:
         try:
             clients = controller.clients()
