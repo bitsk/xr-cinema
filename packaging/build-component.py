@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Build the locked cinema component through xr-build-components."""
 import argparse
+import json
 import os
 from pathlib import Path
 import subprocess
-import tomllib
 
 
 def main():
@@ -27,7 +27,10 @@ def main():
                                        ("RISC-V", "riscv64")] if elf in architecture), None)
     if not arch:
         raise RuntimeError("Unsupported cinema binary architecture")
-    version = tomllib.loads((root / "Cargo.toml").read_text())["package"]["version"]
+    metadata = json.loads(subprocess.check_output(
+        ["cargo", "metadata", "--no-deps", "--format-version", "1", "--locked"],
+        cwd=root, env=env, text=True))
+    version = next(p["version"] for p in metadata["packages"] if p["name"] == "xr-cinema")
     args.packages.mkdir(parents=True, exist_ok=True)
     subprocess.run(["sh", str(root / "packaging/package.sh"),
                     str(args.packages / f"xr-cinema_{version}_{arch}.deb"), str(binary)],

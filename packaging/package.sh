@@ -33,8 +33,8 @@ Architecture: $arch
 Maintainer: XR Cinema contributors
 Section: video
 Priority: optional
-Depends: python3 (>= 3.9), libc6 (>= $glibc), libgcc-s1, libvulkan1, libopenxr-loader1, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, libglib2.0-0t64 | libglib2.0-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-libav
-Recommends: gstreamer1.0-plugins-bad, gstreamer1.0-pulseaudio | gstreamer1.0-alsa, fonts-noto-cjk
+Depends: python3 (>= 3.9), libc6 (>= $glibc), libgcc-s1, libvulkan1, libopenxr-loader1, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, libglib2.0-0t64 | libglib2.0-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-libav
+Recommends: gstreamer1.0-pulseaudio | gstreamer1.0-alsa, fonts-noto-cjk
 Description: Spatial video player for openKylin XR
  Play mono, stereo and equirectangular videos in a virtual cinema using
  Vulkan and an active OpenXR runtime. Control playback with tracked

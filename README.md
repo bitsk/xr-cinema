@@ -119,6 +119,10 @@ python3 tests/demos.py target/release/xr-cinema assets/demos/catalog.json
 
 **性能路径。** GStreamer 依照系统插件优先级选择可协商的解码器，按播放时钟呈现，视频队列最多保留一帧。连续 RGBA 帧直接映射 GStreamer 样本，Vulkan 仅在收到新帧时写入复用的上传缓冲，双眼共享源纹理。头部姿态按 OpenXR 预测显示时间更新，文字与面板在独立线程按需绘制。当前实现仍有 RGBA 转换和 GPU 上传开销，硬件解码器、片源分辨率和头显刷新率都影响实际吞吐量。
 
+**硬件解码诊断。** 安装包依赖 `gstreamer1.0-plugins-bad` 中的 H.264/H.265 解析器。MP4 的 AVC/HEVC 码流需要解析器转换为 Venus 等 V4L2 解码器接受的 byte-stream / AU 格式，只有软件解码插件并不足以建立硬解管线。取得第一帧后，`ctl status` 的 `state.decoder` 报告实际视频解码器的 `factory`、`hardware` 分类和可用的 `device` 路径，日志也输出 `XR_CINEMA_DECODER`。该信息取自当前管线中的解码器；设备硬解验收还需核实对应 V4L2 节点、输出帧和播放表现。
+
+在提供 `XR_SCENE_APPLICATION_SOCKET` 的原生 HyperSpace 会话中，桌面启动器通过 `xr-shell-session` 交接前台。播放器退出后由同一会话恢复空间桌面，安装与启动均不会重启跟踪或 XR 运行时。跨组件构建使用 `xr-build-components build --profile cinema --only xr-cinema`。
+
 ## 设备验证
 
 0.3.0 已在 ARM64 的 Mali-G720 MC10 和 RISC-V 的 Milk-V TITAN（Radeon RX 9060 XT）上通过 Vulkan 双眼像素回读测试，覆盖手柄模型视差、射线近端亮度、控件落点、按压反馈和跟踪中断。该版本的手柄交互仍待实体头显佩戴复测。
