@@ -431,7 +431,7 @@ impl Renderer {
                 &vk::PipelineLayoutCreateInfo::default()
                     .set_layouts(&[self.set_layout])
                     .push_constant_ranges(&[vk::PushConstantRange::default()
-                        .stage_flags(vk::ShaderStageFlags::FRAGMENT)
+                        .stage_flags(vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT)
                         .size(size_of::<Constants>() as u32)]),
                 None,
             )?;
@@ -779,7 +779,7 @@ impl Renderer {
                 self.device.cmd_push_constants(
                     self.cmd,
                     self.layout,
-                    vk::ShaderStageFlags::FRAGMENT,
+                    vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                     0,
                     bytes,
                 );

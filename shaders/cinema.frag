@@ -1,6 +1,6 @@
 #version 450
 
-layout(location = 0) in vec2 viewUV;
+layout(location = 0) in vec3 viewRay;
 layout(location = 0) out vec4 fragment;
 layout(binding = 0) uniform sampler2D video;
 layout(binding = 1) uniform sampler2D hud;
@@ -105,10 +105,7 @@ vec3 scene(vec3 o, vec3 d) {
 }
 
 void main() {
-    vec3 ray = normalize(vec3(mix(pc.tangentFov.x, pc.tangentFov.y, viewUV.x),
-                              mix(pc.tangentFov.z, pc.tangentFov.w, viewUV.y), -1.0));
-    vec4 q = pc.rotation;
-    vec3 d = ray + 2.0 * cross(q.xyz, cross(q.xyz, ray) + q.w * ray);
+    vec3 d = normalize(viewRay);
     vec3 o = pc.origin.xyz;
     vec4 overlay = vec4(0.0);
     if (pc.panel.x > 0.0 && d.z < -0.001) {
