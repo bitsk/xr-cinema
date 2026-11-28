@@ -11,7 +11,7 @@ openKylin XR 的原生空间视频播放器。Rust 驱动 OpenXR 帧循环、手
 将对应架构的安装包复制到设备，在包所在目录运行以下命令。已验证的系统包括 openKylin 3.0 ARM64 和 openKylin 2.0 SP2 RISC-V 64。目标图形会话需要可用的 Vulkan 驱动和支持 `XR_KHR_vulkan_enable2` 的 OpenXR 运行时。
 
 ```sh
-sudo apt install "./xr-cinema_0.3.5_$(dpkg --print-architecture).deb"
+sudo apt install "./xr-cinema_0.3.6_$(dpkg --print-architecture).deb"
 ```
 
 连接头显，在 HyperSpace 底部 Dock 最左侧打开 **应用库**，翻页找到 **空间影院**。进入影院后，点播放栏的文件夹，选择 **演示片库** 即可试播。如果在 HyperSpace 运行期间安装了影院，重新打开 HyperSpace 会刷新应用列表。
